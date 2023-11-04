@@ -9,7 +9,24 @@ from PIL import Image
 import io
 from io import BytesIO
 import base64
+import mysql.connector
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
+
+# MYSQL Connection
+mysql_host_name = os.getenv("MYSQL_HOST_NAME")
+mysql_user_name = os.getenv("MYSQL_USER_NAME")
+mysql_password = os.getenv("MYSQL_PASSWORD")
+mysql_database_name = os.getenv("MYSQL_DATABASE_NAME")
+
+db = mysql.connector.connect(host = mysql_host_name,
+                             user = mysql_user_name,
+                             password = mysql_password,
+                             database = mysql_database_name)
+mycursor = db.cursor(buffered = True)
 
 lst=[]
 def To_Data_identification(a):
@@ -71,10 +88,10 @@ def To_Data_identification(a):
                         address=address[2].strip()
                         if address.count(' ')==1:
                             data['State'] = address[:address.index(' ')].strip()
-                            data['Pincode'] = address[address.index(' ')+1 : ].strip()
+                            data['Pincode'] = int(address[address.index(' ')+1 : ].strip())
                     else:
                         data['State'] = address[2].strip()
-                        data['Pincode'] = address[3].strip()            
+                        data['Pincode'] = int(address[3].strip())           
         else:
             companydetails = companydetails + ' ' +i[1]
             if companydetails.strip().count(' '):
@@ -83,6 +100,50 @@ def To_Data_identification(a):
 
     return data
 
+
+def To_Create_table():
+    try:
+        mycursor.execute("CREATE DATABASE IF NOT EXISTS bizcard;")
+        db.commit()
+        mycursor.execute("""CREATE TABLE IF NOT EXISTS bizcard_details(
+                            Name VARCHAR(250),
+                            Designation VARCHAR(250),
+                            Email_Address VARCHAR(250) PRIMARY KEY,
+                            Area VARCHAR(250),
+                            City VARCHAR(250),
+                            State VARCHAR(250), 
+                            Pincode INT,
+                            Mobile_No VARCHAR(250),
+                            Website_Url VARCHAR(250),
+                            Company VARCHAR(250),
+                            Category VARCHAR(250),
+                            Business_Card_Image_base64 LONGTEXT);""")
+        db.commit()
+        return 'Table Created!'
+    except Exception as e:
+        return e
+To_Create_table()
+
+def To_Insert_MYSQL_Table(insert_values):
+    # for value in insert_values:
+    query=f"""INSERT INTO bizcard_details
+            (Name, Designation, Email_Address, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category, Business_Card_Image_base64) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+            Name = VALUES(Name),
+            Designation = VALUES(Designation),
+            Area = VALUES(Area),
+            City = VALUES(City),
+            State = VALUES(State),
+            Pincode = VALUES(Pincode),
+            Mobile_No = VALUES(Mobile_No),
+            Website_Url = VALUES(Website_Url),
+            Company = VALUES(Company),
+            Category = VALUES(Category),
+            Business_Card_Image_base64 = VALUES(Business_Card_Image_base64);"""
+    mycursor.executemany(query,insert_values)
+    db.commit()
+    return 'Successfully Inserted!'
 reader = easyocr.Reader(['en'])
 
 st.set_page_config(
@@ -149,7 +210,14 @@ if selected == 'Extract Data':
                     df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
 
             st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
-            st.write(data.values())
+            sql = st.button('Mysql')
+            if sql and data:
+                data.pop('Image')
+                insert_value = [tuple(data.values())]
+                print(type(insert_value), type(insert_value[0]))
+                # To_Create_table()
+                result =To_Insert_MYSQL_Table(insert_value)
+                st.success(result)
  
 
     with tab2:
@@ -192,9 +260,16 @@ if selected == 'Extract Data':
 
                 df = pd.DataFrame(data_list)
             if len(data_list):
-                st.dataframe(df)
 
                 df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
 
                 st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
+                sql = st.button('Mysql ')
+                if sql and not df.empty:
+                    df = df.drop('Image', axis = 1)
+                    insert_values = df.to_records(index = False)
+                    insert_values = insert_values.tolist()
+                    # To_Create_table()
+                    result = To_Insert_MYSQL_Table(insert_values)
+                    st.success(result)
 
