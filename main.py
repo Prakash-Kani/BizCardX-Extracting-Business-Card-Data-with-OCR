@@ -122,7 +122,7 @@ def To_Create_table():
         return 'Table Created!'
     except Exception as e:
         return e
-To_Create_table()
+# To_Create_table()
 
 def To_Insert_MYSQL_Table(insert_values):
     # for value in insert_values:
@@ -144,7 +144,7 @@ def To_Insert_MYSQL_Table(insert_values):
     mycursor.executemany(query,insert_values)
     db.commit()
     return 'Successfully Inserted!'
-reader = easyocr.Reader(['en'])
+# reader = easyocr.Reader(['en'])
 
 st.set_page_config(
     page_title="Business Card Data Extracting",
@@ -154,7 +154,7 @@ st.set_page_config(
 )
 
 with st.sidebar:
-    selected = option_menu("Menu", ["Home", "Extract Data" ], 
+    selected = option_menu("Menu", ["Home", "Extract Data", "To Update" ], 
                 # icons=["house","graph-up-arrow","bar-chart-line", "exclamation-circle"],
                 menu_icon= "menu-button-wide",
                 default_index=0,
@@ -175,6 +175,7 @@ if selected == 'Extract Data':
                 st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
                 
             with col2:
+                reader = easyocr.Reader(['en'])
                 img_bytes = uploaded_file.read()
                 base64_image = base64.b64encode(img_bytes).decode('utf-8')
                 result = reader.readtext(img_bytes)
@@ -214,7 +215,6 @@ if selected == 'Extract Data':
             if sql and data:
                 data.pop('Image')
                 insert_value = [tuple(data.values())]
-                print(type(insert_value), type(insert_value[0]))
                 # To_Create_table()
                 result =To_Insert_MYSQL_Table(insert_value)
                 st.success(result)
@@ -232,7 +232,7 @@ if selected == 'Extract Data':
 
             with col4:
                 data_list = []
-
+                reader = easyocr.Reader(['en'])
                 for uploaded_file in uploaded_files:
                     img_bytes = uploaded_file.read()
                     base64_image = base64.b64encode(img_bytes).decode('utf-8')
@@ -273,3 +273,61 @@ if selected == 'Extract Data':
                     result = To_Insert_MYSQL_Table(insert_values)
                     st.success(result)
 
+elif selected == 'To Update':
+    st.write('prakash')
+    mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
+    Email = mycursor.fetchall()
+    Email_Address = st.selectbox('***Select the Email Address To Update the Details***',[ email[0] for email in Email])
+
+
+    mycursor.execute (f"""SELECT Business_Card_Image_base64 FROM bizcard_details WHERE Email_Address = '{Email_Address}';""")
+    Business_Card_Image_base64 = mycursor.fetchall()
+    image_data = base64.b64decode(str(Business_Card_Image_base64).split(',')[0])
+
+    # # Convert the image data to bytes
+    image_bytes = BytesIO(image_data)
+
+    # Open the image using Pillow
+    img = Image.open(image_bytes)
+    st.image(img, width= 500)
+
+    mycursor.execute(f"""SELECT Name, Designation, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category FROM bizcard_details
+                      WHERE Email_Address = '{Email_Address}';""")
+    details = mycursor.fetchall()
+    details_df =pd.DataFrame(details, columns = [i[0] for i in mycursor.description])
+
+    Name = st.text_input(details_df.columns[0], details_df[details_df.columns[0]].iloc[0] )
+    Designation = st.text_input(details_df.columns[1], details_df[details_df.columns[1]].iloc[0] )
+    Area = st.text_input(details_df.columns[2], details_df[details_df.columns[2]].iloc[0] )
+    City = st.text_input(details_df.columns[3], details_df[details_df.columns[3]].iloc[0] )
+    State = st.text_input(details_df.columns[4], details_df[details_df.columns[4]].iloc[0] )
+    Pincode = st.number_input(details_df.columns[5], details_df[details_df.columns[5]].iloc[0] )
+    Mobile_No = st.text_input(details_df.columns[6], details_df[details_df.columns[6]].iloc[0] )
+    Website_Url = st.text_input(details_df.columns[7], details_df[details_df.columns[7]].iloc[0] )
+    Company = st.text_input(details_df.columns[8], details_df[details_df.columns[8]].iloc[0] )
+    Category = st.text_input(details_df.columns[9], details_df[details_df.columns[9]].iloc[0] )
+    # st.dataframe(details_df)
+    # st.write(Name, Designation, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category)
+    st.markdown('***To Click Below Button To Update***')
+    update= st.button('Update')
+    if update and Name and Designation and Area and City and State and Pincode and Mobile_No and Website_Url and Company and Category and Email_Address:
+        query = f"""UPDATE bizcard_details
+                    SET Name = '{Name}', 
+                        Designation = '{Designation}', 
+                        Area = '{Area}',
+                        City = '{City}',
+                        State = '{State}',
+                        Pincode = {Pincode},
+                        Mobile_No = '{Mobile_No}',
+                        Website_Url = '{Website_Url}',
+                        Company = '{Company}',
+                        Category = '{Category}'
+                    WHERE Email_Address = '{Email_Address}';"""
+        mycursor.execute(query)
+        db.commit()
+        st.success('Successfully Updated!')
+        mycursor.execute(f"""SELECT Name, Designation, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category FROM bizcard_details
+                      WHERE Email_Address = '{Email_Address}';""")
+        updated_details = mycursor.fetchall()
+        updated_details_df =pd.DataFrame(updated_details, columns = [i[0] for i in mycursor.description])
+        st.dataframe(updated_details_df)
