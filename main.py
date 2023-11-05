@@ -154,7 +154,7 @@ st.set_page_config(
 )
 
 with st.sidebar:
-    selected = option_menu("Menu", ["Home", "Extract Data", "To Update", "To Delete" ], 
+    selected = option_menu("Menu", ["Home", "Extract Data", "To Update", "To Delete", "To Read" ], 
                 # icons=["house","graph-up-arrow","bar-chart-line", "exclamation-circle"],
                 menu_icon= "menu-button-wide",
                 default_index=0,
@@ -351,5 +351,29 @@ elif selected == "To Delete":
         mycursor.execute (f"""DELETE FROM bizcard_details WHERE Email_Address = '{Email_address}';""")
         db.commit()
         st.success('Deleted!')
-    # Business_Card_Image_base64 = mycursor.fetchall()
-    # image_data = base64.b64decode(str(Business_Card_Image_base64).split(',')[0])
+
+elif selected == "To Read":
+    query = st.text_area('**Enter your own query**', 'SELECT * FROM bizcard_details')
+    # query = query.lower()
+    result = st.button( "Retrieve Data")
+    if result == False:
+        mycursor.execute("DESCRIBE bizcard_details")
+        data1 = mycursor.fetchall()
+        
+        st.write("""Refer to the below tables for guidance, where title is represented as the table name,
+                    and their corresponding column names are provided as row values.""")
+        st.header(':blue[ChannelDetails]')
+        data1 = [i[0] for i in data1]
+        st.dataframe(pd.DataFrame(data1, columns = ['Column Name']))  
+    elif result == True:
+        mycursor.execute(query)
+        data = mycursor.fetchall()
+        df = pd.DataFrame(data, columns = [i[0] for i in mycursor.description])
+        # st.write(df.columns.lower())
+        if "Business_Card_Image_base64" in df.columns:
+            df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
+            new_order = ['Image'] + [col for col in df.columns if col != 'Image']
+            df = df[new_order]
+            st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
+        else:
+            st.dataframe(df)
