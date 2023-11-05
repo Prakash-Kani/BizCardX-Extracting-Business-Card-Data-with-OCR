@@ -154,9 +154,10 @@ st.set_page_config(
 )
 
 with st.sidebar:
-    selected = option_menu("Menu", ["Home", "Extract Data", "To Update", "To Delete", "To Read" ], 
+    selected = option_menu("Menu", ["Home", "Extract Data", "Modify Data", "Delete Data", "Direct MYSQL Query" ], 
                 # icons=["house","graph-up-arrow","bar-chart-line", "exclamation-circle"],
-                menu_icon= "menu-button-wide",
+                icons=['house', 'cloud-upload','graph-up-arrow', "recycle", 'search'], 
+                menu_icon= "cast",
                 default_index=0,
                 )
 st.header("Extracting Business Card Data with OCR", divider='rainbow')
@@ -164,7 +165,7 @@ st.header("Extracting Business Card Data with OCR", divider='rainbow')
 
 if selected == 'Extract Data':
     st.title("Business Card Text Extraction")
-    tab1, tab2= st.tabs(['**Single Image Ectraction**','**Multiple Image Ectraction**'],)
+    tab1, tab2= st.tabs(['**Single Image Extraction**','**Multiple Image Extraction**'])
     with tab1:
         uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
 
@@ -273,7 +274,7 @@ if selected == 'Extract Data':
                     result = To_Insert_MYSQL_Table(insert_values)
                     st.success(result)
 
-elif selected == 'To Update':
+elif selected == 'Modify Data':
     st.header('Update')
     mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
     Email = mycursor.fetchall()
@@ -332,7 +333,7 @@ elif selected == 'To Update':
         updated_details_df =pd.DataFrame(updated_details, columns = [i[0] for i in mycursor.description])
         st.dataframe(updated_details_df)
 
-elif selected == "To Delete":
+elif selected == "Delete Data":
     st.header('Delete')
     st.markdown('The below dataframe shows the stored Bizcard details')
 
@@ -352,28 +353,82 @@ elif selected == "To Delete":
         db.commit()
         st.success('Deleted!')
 
-elif selected == "To Read":
-    query = st.text_area('**Enter your own query**', 'SELECT * FROM bizcard_details')
-    # query = query.lower()
-    result = st.button( "Retrieve Data")
-    if result == False:
-        mycursor.execute("DESCRIBE bizcard_details")
-        data1 = mycursor.fetchall()
-        
-        st.write("""Refer to the below tables for guidance, where title is represented as the table name,
-                    and their corresponding column names are provided as row values.""")
-        st.header(':blue[ChannelDetails]')
-        data1 = [i[0] for i in data1]
-        st.dataframe(pd.DataFrame(data1, columns = ['Column Name']))  
-    elif result == True:
-        mycursor.execute(query)
-        data = mycursor.fetchall()
-        df = pd.DataFrame(data, columns = [i[0] for i in mycursor.description])
-        # st.write(df.columns.lower())
-        if "Business_Card_Image_base64" in df.columns:
-            df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
-            new_order = ['Image'] + [col for col in df.columns if col != 'Image']
-            df = df[new_order]
-            st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
-        else:
-            st.dataframe(df)
+elif selected == "Direct MYSQL Query":
+    tab3, tab4 = st.tabs(['Retrieve Data', 'Retrieve Image'])
+    with tab3:
+        query = st.text_area('**Enter your own query**', 'SELECT * FROM bizcard_details')
+        # query = query.lower()
+        result = st.button( "Retrieve Data")
+        if result == False:
+            mycursor.execute("DESCRIBE bizcard_details")
+            data1 = mycursor.fetchall()
+            
+            st.write("""Refer to the below tables for guidance, where title is represented as the table name,
+                        and their corresponding column names are provided as row values.""")
+            st.header(':blue[bizcard_details]')
+            data1 = [i[0] for i in data1]
+            st.dataframe(pd.DataFrame(data1, columns = ['Column Name']))  
+        elif result == True:
+            mycursor.execute(query)
+            data = mycursor.fetchall()
+            df = pd.DataFrame(data, columns = [i[0] for i in mycursor.description])
+            if "Business_Card_Image_base64" in df.columns:
+                df["image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
+                new_order = ['image'] + [col for col in df.columns if col != 'image']
+                df = df[new_order]
+                st.dataframe(df, column_config={"image": st.column_config.ImageColumn()})
+            else:
+                st.dataframe(df)
+    with tab4:
+        mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
+        Email = mycursor.fetchall()
+        email_address = st.selectbox('***Select the Email Address To Read the Business Card***',[ email[0] for email in Email])
+
+        mycursor.execute (f"""SELECT Business_Card_Image_base64 FROM bizcard_details WHERE Email_Address = '{email_address}';""")
+        Business_Card_Image_base64 = mycursor.fetchall()
+        image_data = base64.b64decode(str(Business_Card_Image_base64).split(',')[0])
+
+        # # Convert the image data to bytes
+        image_bytes = BytesIO(image_data)
+
+        # Open the image using Pillow
+        img = Image.open(image_bytes)
+        st.image(img, width= 500)
+        st.markdown('Click ***Download BizCard*** button to download the Business card image')
+        btn = st.download_button(
+        label="Download BizCard",
+        data=image_bytes,
+        file_name="BizCard.png",
+        mime="image/png"
+        )
+
+elif selected == 'Home':
+    col5, col6 = st.columns(2, gap = 'small')
+    with col6:
+        image= Image.open(r'overview.png')
+        st.image(image)
+    with col5:
+        st.header('Overview:')
+        st.markdown(""" The Streamlit app helps users upload business card images, extracting key details such as company name, holder name, 
+                    contact, and location using easyOCR. The app also lets users save this data and the uploaded images into a database. 
+                    It operates using Python, Streamlit, easyOCR, and databases like SQLite or MySQL, providing a straightforward user interface 
+                    for smooth image uploads and data extraction. The collected info is neatly displayed, and users can effortlessly add, read, 
+                    update, and delete the data directly through the Streamlit app. This project demands expertise in image processing, OCR, GUI 
+                    development, and database management, emphasizing scalable, maintainable, and well-documented architecture.""")
+    st.header('User Guide')
+    st.markdown('### ***Extract Data***')
+    st.markdown(""" - ***Single Image Extract:*** Upload a single image to extract text data.
+                    \n- ***Multi-Image Extract:*** Upload multiple images to extract text data.""")
+    st.markdown('### ***Modify Data***')
+    st.markdown(""" - Choose the email address to update stored information in MySQL.""")
+    st.markdown('### ***Delete Data***')
+    st.markdown(""" - Select the email address to remove stored information.""")
+    st.markdown('### ***Direct MYSQL Query***')
+    st.markdown('#### ***Retrieve Data:***')
+    st.markdown(""" - ***Function:*** Allows users to write custom queries and analyze the relevant table columns.
+                  \n- ***Usage:*** Write SQL queries in the given input area to retrieve specific information from the database table.
+                  \n- ***Table Column Reference:*** For reference, a list of table column names will be provided to help construct accurate SQL queries..""")
+    st.markdown('#### ***Retrieve Data:***')
+    st.markdown(""" - ***Function:*** Permits users to view stored images and download them based on Email addresses.
+                    \n- ***Usage:*** Select an Email address to view the associated image stored in the database.
+                    \n- ***Action:*** Provides an option to download the image for the chosen Email address.""")
