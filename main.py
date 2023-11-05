@@ -369,16 +369,23 @@ elif selected == "Direct MYSQL Query":
             data1 = [i[0] for i in data1]
             st.dataframe(pd.DataFrame(data1, columns = ['Column Name']))  
         elif result == True:
-            mycursor.execute(query)
-            data = mycursor.fetchall()
-            df = pd.DataFrame(data, columns = [i[0] for i in mycursor.description])
-            if "Business_Card_Image_base64" in df.columns:
-                df["image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
-                new_order = ['image'] + [col for col in df.columns if col != 'image']
-                df = df[new_order]
-                st.dataframe(df, column_config={"image": st.column_config.ImageColumn()})
+            query1 = query.lower()
+            if 'select' in query1:
+                try:
+                    mycursor.execute(query)
+                    data = mycursor.fetchall()
+                    df = pd.DataFrame(data, columns = [i[0] for i in mycursor.description])
+                    if "Business_Card_Image_base64" in df.columns:
+                        df["image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
+                        new_order = ['image'] + [col for col in df.columns if col != 'image']
+                        df = df[new_order]
+                        st.dataframe(df, column_config={"image": st.column_config.ImageColumn()})
+                    else:
+                        st.dataframe(df)
+                except Exception as e:
+                    st.exception(e)
             else:
-                st.dataframe(df)
+                st.warning('Access Denied', icon="⚠️")
     with tab4:
         mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
         Email = mycursor.fetchall()
