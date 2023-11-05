@@ -154,7 +154,7 @@ st.set_page_config(
 )
 
 with st.sidebar:
-    selected = option_menu("Menu", ["Home", "Extract Data", "To Update" ], 
+    selected = option_menu("Menu", ["Home", "Extract Data", "To Update", "To Delete" ], 
                 # icons=["house","graph-up-arrow","bar-chart-line", "exclamation-circle"],
                 menu_icon= "menu-button-wide",
                 default_index=0,
@@ -274,7 +274,7 @@ if selected == 'Extract Data':
                     st.success(result)
 
 elif selected == 'To Update':
-    st.write('prakash')
+    st.header('Update')
     mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
     Email = mycursor.fetchall()
     Email_Address = st.selectbox('***Select the Email Address To Update the Details***',[ email[0] for email in Email])
@@ -331,3 +331,25 @@ elif selected == 'To Update':
         updated_details = mycursor.fetchall()
         updated_details_df =pd.DataFrame(updated_details, columns = [i[0] for i in mycursor.description])
         st.dataframe(updated_details_df)
+
+elif selected == "To Delete":
+    st.header('Delete')
+    st.markdown('The below dataframe shows the stored Bizcard details')
+
+    mycursor.execute(f"""SELECT * FROM bizcard_details;""")
+    stored_data = mycursor.fetchall()
+    data_df =pd.DataFrame(stored_data, columns = [i[0] for i in mycursor.description])
+    st.dataframe(data_df)
+
+    mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
+    Email = mycursor.fetchall()
+    Email_address = st.selectbox('***Select the Email Address To Update the Details***',[ email[0] for email in Email])
+
+    delete = st.button('DELETE')
+
+    if delete and Email_address:
+        mycursor.execute (f"""DELETE FROM bizcard_details WHERE Email_Address = '{Email_address}';""")
+        db.commit()
+        st.success('Deleted!')
+    # Business_Card_Image_base64 = mycursor.fetchall()
+    # image_data = base64.b64decode(str(Business_Card_Image_base64).split(',')[0])
