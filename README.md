@@ -12,25 +12,25 @@ The goal of this project is to create an interactive Streamlit application enabl
 To run this project, you'll need to install the following Python libraries. You can do so using `pip`:
 
 - **Streamlit:** Used to create interactive web applications in Python.
-   -    pip install streamlit
+   -      pip install streamlit
 - **Option Menu:** A Streamlit plugin for interactive dropdown menus.
-   -    pip install streamlit-option-menu
+   -      pip install streamlit-option-menu
 - **EasyOCR:** A tool for optical character recognition (OCR).
-   -    pip install easyocr
+   -      pip install easyocr
 - **Pandas:** Essential for data handling and manipulation.
-   -    pip install pandas
+   -      pip install pandas
 - **Matplotlib:** Library for data visualization and plotting.
-   -    pip install matplotlib
+   -      pip install matplotlib
 - **Pillow:** Image processing library.
-   -    pip install Pillow
+   -      pip install Pillow
 - **io:** Core module for handling streams.
    - Installed with Python by default
 - **Base64:** Library for encoding and decoding base64 data.
    - Installed with Python by default
 - **MySQL Connector:** For communication with MySQL databases.
-   -    pip install mysql-connector-python
+   -      pip install mysql-connector-python
 - **dotenv:** For managing environment variables.
-   -    pip install python-dotenv
+   -      pip install python-dotenv
 
 Make sure to run these commands in your Python environment to install the required libraries.
 
