@@ -146,3 +146,10 @@ To start with the Business Card Data Extraction project, follow these steps:
    - Once the app is launched, follow the instructions in the app for extracting data, modifying, deleting, and performing MySQL queries directly.
 
 Now you're all set to use the Business Card Data Extraction app, managing and analyzing data from business cards with ease.
+
+
+# Demo Video
+___
+
+To view a demo of the web application, click the link below. 
+https://www.linkedin.com/posts/prakash-k-physics_datascience-bizcardx-data-activity-7128414241996361729-9dcI?utm_source=share&utm_medium=member_desktop
