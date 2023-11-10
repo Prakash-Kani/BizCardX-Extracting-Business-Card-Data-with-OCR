@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # MYSQL Connection
+# ----------------------------------------------/   Creating table in MYSQL   /--------------------------------------------------------------------
+
 mysql_host_name = os.getenv("MYSQL_HOST_NAME")
 mysql_user_name = os.getenv("MYSQL_USER_NAME")
 mysql_password = os.getenv("MYSQL_PASSWORD")
@@ -29,7 +31,7 @@ db = mysql.connector.connect(host = mysql_host_name,
 mycursor = db.cursor(buffered = True)
 
 lst=[]
-def To_Data_identification(a):
+def Data_identification(details):
     data = {'Image':'',
             'Name':'',
             'Designation': "",
@@ -47,14 +49,14 @@ def To_Data_identification(a):
     address=''
     contact=[]
     companydetails=''
-    for i in a:
-        if a.index(i)==0:
-            data['Name'] = i[1]
-        elif a.index(i)==1:
-            data['Designation'] = i[1]
-        elif '+' in i[1] or '-' in i[1]:
+    for text in details:
+        if details.index(text)==0:
+            data['Name'] = text[1]
+        elif details.index(text)==1:
+            data['Designation'] = text[1]
+        elif '+' in text[1] or '-' in text[1]:
             # print(i[1])
-            result = re.split(r"-|\d{2}\d{3}\d{4},", i[1])
+            result = re.split(r"-|\d{2}\d{3}\d{4},", text[1])
             result1=''.join(result).replace('+','')
             if result1:
                 result2 = re.match(r"\d{10}",result1)
@@ -63,16 +65,16 @@ def To_Data_identification(a):
                     data['Mobile_No']=','.join(contact)
                 else:
                     data['Mobile_No']=result1+'not valid number'
-        elif '@'in i[1] and '.com' in i[1]:
-            data['Email_Address'] = i[1]
-        elif '@'not in i[1] and 'com' in i[1] or 'www' in i[1].lower() :
-            i[1].lower()
-            if 'www' in i[1].lower() or 'WWW' in i[1]:
-                data['Website_Url'] = i[1]
+        elif '@'in text[1] and '.com' in text[1]:
+            data['Email_Address'] = text[1]
+        elif '@'not in text[1] and 'com' in text[1] or 'www' in text[1].lower() :
+            text[1].lower()
+            if 'www' in text[1].lower() or 'WWW' in text[1]:
+                data['Website_Url'] = text[1]
             else:
-                data['Website_Url'] = 'www.'+i[1]
-        elif 'St' in i[1] or re.match(r"\d{3}\s\w",i[1]) or re.match(r"\w+\s\d{6}|\d{6}",i[1]) or re.match('^E.*',i[1]):
-            area =area +' '+ i[1]
+                data['Website_Url'] = 'www.'+text[1]
+        elif 'St' in text[1] or re.match(r"\d{3}\s\w",text[1]) or re.match(r"\w+\s\d{6}|\d{6}",text[1]) or re.match('^E.*',text[1]):
+            area =area +' '+ text[1]
             if re.findall(r"\b\d{6,7}\b",area):
                 address= area.replace(' ,',',')
                 address= address.replace(',,',',')
@@ -93,15 +95,15 @@ def To_Data_identification(a):
                         data['State'] = address[2].strip()
                         data['Pincode'] = int(address[3].strip())           
         else:
-            companydetails = companydetails + ' ' +i[1]
+            companydetails = companydetails + ' ' +text[1]
             if companydetails.strip().count(' '):
                 data['Company'] = companydetails.strip()
                 data['Category'] = data['Company'][data['Company'].index(' '):].strip()
 
     return data
 
-
-def To_Create_table():
+# ----------------------------------------------/   Creating table in MYSQL   /--------------------------------------------------------------------
+def Create_table():
     try:
         mycursor.execute("CREATE DATABASE IF NOT EXISTS bizcard;")
         db.commit()
@@ -122,9 +124,10 @@ def To_Create_table():
         return 'Table Created!'
     except Exception as e:
         return e
-# To_Create_table()
+# Create_table()
 
-def To_Insert_MYSQL_Table(insert_values):
+# ----------------------------------------------/   Creating table in MYSQL   /--------------------------------------------------------------------
+def Insert_MYSQL_Table(insert_values):
     # for value in insert_values:
     query=f"""INSERT INTO bizcard_details
             (Name, Designation, Email_Address, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category, Business_Card_Image_base64) 
@@ -162,10 +165,12 @@ with st.sidebar:
                 )
 st.header("Extracting Business Card Data with OCR", divider='rainbow')
 
+# ----------------------------------------------/   Business Card text extraction   /--------------------------------------------------------------------
 
 if selected == 'Extract Data':
     st.title("Business Card Text Extraction")
     tab1, tab2= st.tabs(['**Single Image Extraction**','**Multiple Image Extraction**'])
+    # Single-Business Card text extraction
     with tab1:
         uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
 
@@ -205,22 +210,22 @@ if selected == 'Extract Data':
 
                 # Show the plot
                 st.pyplot(fig)
-                data=To_Data_identification(result)
+                data=Data_identification(result)
                 data['Business_Card_Image_base64'] = base64_image
                 if data:
                     df = pd.DataFrame([data])
                     df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
 
             st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
-            sql = st.button('Mysql')
+            st.markdown('***Click "Save to MYSQL" button to store the extracted data.***')
+            sql = st.button('Save to MYSQL')
             if sql and data:
                 data.pop('Image')
                 insert_value = [tuple(data.values())]
-                # To_Create_table()
-                result =To_Insert_MYSQL_Table(insert_value)
+                # Create_table()
+                result =Insert_MYSQL_Table(insert_value)
                 st.success(result)
- 
-
+#   Multiple-Business Card text extraction
     with tab2:
         uploaded_files = st.file_uploader("Upload multiple images", type=["jpg", "png", "jpeg"], accept_multiple_files=True)
 
@@ -255,7 +260,7 @@ if selected == 'Extract Data':
                     st.pyplot(fig)
 
                     # Extract text data for each image
-                    data = To_Data_identification(result)
+                    data = Data_identification(result)
                     data['Business_Card_Image_base64'] = base64_image
                     data_list.append(data)
 
@@ -265,17 +270,20 @@ if selected == 'Extract Data':
                 df["Image"] = df.apply(lambda x: "data:image/png;base64,"+ x["Business_Card_Image_base64"], axis=1)
 
                 st.dataframe(df, column_config={"Image": st.column_config.ImageColumn()})
-                sql = st.button('Mysql ')
+                st.markdown('***Click "Save to MYSQL" button to store the extracted data.***')
+                sql = st.button('Save to MYSQL ')
                 if sql and not df.empty:
                     df = df.drop('Image', axis = 1)
                     insert_values = df.to_records(index = False)
                     insert_values = insert_values.tolist()
-                    # To_Create_table()
-                    result = To_Insert_MYSQL_Table(insert_values)
+                    # Create_table()
+                    result = Insert_MYSQL_Table(insert_values)
                     st.success(result)
 
+# ----------------------------------------------/   Modify data in MYSQL   /--------------------------------------------------------------------
+
 elif selected == 'Modify Data':
-    st.header('Update')
+    st.header('Modify Data')
     mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
     Email = mycursor.fetchall()
     Email_Address = st.selectbox('***Select the Email Address To Update the Details***',[ email[0] for email in Email])
@@ -307,9 +315,7 @@ elif selected == 'Modify Data':
     Website_Url = st.text_input(details_df.columns[7], details_df[details_df.columns[7]].iloc[0] )
     Company = st.text_input(details_df.columns[8], details_df[details_df.columns[8]].iloc[0] )
     Category = st.text_input(details_df.columns[9], details_df[details_df.columns[9]].iloc[0] )
-    # st.dataframe(details_df)
-    # st.write(Name, Designation, Area, City, State, Pincode, Mobile_No, Website_Url, Company, Category)
-    st.markdown('***To Click Below Button To Update***')
+    st.markdown('***To Click Below Button To Update data in MYSQL***')
     update= st.button('Update')
     if update and Name and Designation and Area and City and State and Pincode and Mobile_No and Website_Url and Company and Category and Email_Address:
         query = f"""UPDATE bizcard_details
@@ -333,8 +339,10 @@ elif selected == 'Modify Data':
         updated_details_df =pd.DataFrame(updated_details, columns = [i[0] for i in mycursor.description])
         st.dataframe(updated_details_df)
 
+# ----------------------------------------------/   Delete the data in MYSQL   /--------------------------------------------------------------------
+
 elif selected == "Delete Data":
-    st.header('Delete')
+    st.header('Remove Data')
     st.markdown('The below dataframe shows the stored Bizcard details')
 
     mycursor.execute(f"""SELECT * FROM bizcard_details;""")
@@ -344,20 +352,24 @@ elif selected == "Delete Data":
 
     mycursor.execute("""SELECT DISTINCT(Email_Address) FROM bizcard_details;""")
     Email = mycursor.fetchall()
-    Email_address = st.selectbox('***Select the Email Address To Update the Details***',[ email[0] for email in Email])
-
-    delete = st.button('DELETE')
+    Email_address = st.selectbox('***Select the Email Address To :red[Remove] the Details***',[ email[0] for email in Email])
+    st.write('Click "REMOVE" button to delete the data in MYSQL')
+    delete = st.button('REMOVE')
 
     if delete and Email_address:
         mycursor.execute (f"""DELETE FROM bizcard_details WHERE Email_Address = '{Email_address}';""")
         db.commit()
         st.success('Deleted!')
 
+# ----------------------------------------------/   Direct MYSQL Query for Analysis   /--------------------------------------------------------------------
+
 elif selected == "Direct MYSQL Query":
+    st.header('Retrieve Data')
     tab3, tab4 = st.tabs(['Retrieve Data', 'Retrieve Image'])
     with tab3:
         query = st.text_area('**Enter your own query**', 'SELECT * FROM bizcard_details')
         # query = query.lower()
+        st.write('Click below button to retrieve the relevant data.')
         result = st.button( "Retrieve Data")
         if result == False:
             mycursor.execute("DESCRIBE bizcard_details")
@@ -368,6 +380,10 @@ elif selected == "Direct MYSQL Query":
             st.header(':blue[bizcard_details]')
             data1 = [i[0] for i in data1]
             st.dataframe(pd.DataFrame(data1, columns = ['Column Name']))  
+            st.header(':blue[***Direct MySQL Query***]')
+            st.markdown("""Empower your data exploration with direct MySQL queries. Craft your own SQL queries for analysis and insights.
+                        Input your custom query and click the "**Retrieve Data**" button. The results will be displayed for your exploration. Please
+                        note that you have read-only access (DQL). Any attempt to perform other query types will result in an "Access Denied" message.""")
         elif result == True:
             query1 = query.lower()
             if 'select' in query1:
@@ -402,18 +418,22 @@ elif selected == "Direct MYSQL Query":
         img = Image.open(image_bytes)
         st.image(img, width= 500)
         st.markdown('Click ***Download BizCard*** button to download the Business card image')
+        # Business card download Button
         btn = st.download_button(
         label="Download BizCard",
         data=image_bytes,
         file_name="BizCard.png",
         mime="image/png"
         )
+# ----------------------------------------------/   Home Page   /--------------------------------------------------------------------
 
 elif selected == 'Home':
     col5, col6 = st.columns(2, gap = 'small')
     with col6:
-        image= Image.open(r'overview.png')
+        image= Image.open(r'thumbnail.png')
         st.image(image)
+        image1 = Image.open(r'extract_example.png')
+        st.image(image1)
     with col5:
         st.header('Overview:')
         st.markdown(""" The Streamlit app helps users upload business card images, extracting key details such as company name, holder name, 
@@ -422,20 +442,20 @@ elif selected == 'Home':
                     for smooth image uploads and data extraction. The collected info is neatly displayed, and users can effortlessly add, read, 
                     update, and delete the data directly through the Streamlit app. This project demands expertise in image processing, OCR, GUI 
                     development, and database management, emphasizing scalable, maintainable, and well-documented architecture.""")
-    st.header('User Guide')
-    st.markdown('### ***Extract Data***')
-    st.markdown(""" - ***Single Image Extract:*** Upload a single image to extract text data.
-                    \n- ***Multi-Image Extract:*** Upload multiple images to extract text data.""")
-    st.markdown('### ***Modify Data***')
-    st.markdown(""" - Choose the email address to update stored information in MySQL.""")
-    st.markdown('### ***Delete Data***')
-    st.markdown(""" - Select the email address to remove stored information.""")
-    st.markdown('### ***Direct MYSQL Query***')
-    st.markdown('#### ***Retrieve Data:***')
-    st.markdown(""" - ***Function:*** Allows users to write custom queries and analyze the relevant table columns.
-                  \n- ***Usage:*** Write SQL queries in the given input area to retrieve specific information from the database table.
-                  \n- ***Table Column Reference:*** For reference, a list of table column names will be provided to help construct accurate SQL queries..""")
-    st.markdown('#### ***Retrieve Data:***')
-    st.markdown(""" - ***Function:*** Permits users to view stored images and download them based on Email addresses.
-                    \n- ***Usage:*** Select an Email address to view the associated image stored in the database.
-                    \n- ***Action:*** Provides an option to download the image for the chosen Email address.""")
+        st.header('User Guide')
+        st.markdown('### ***Extract Data***')
+        st.markdown(""" - ***Single Image Extract:*** Upload a single image to extract text data.
+                        \n- ***Multi-Image Extract:*** Upload multiple images to extract text data.""")
+        st.markdown('### ***Modify Data***')
+        st.markdown(""" - Choose the email address to update stored information in MySQL.""")
+        st.markdown('### ***Delete Data***')
+        st.markdown(""" - Select the email address to remove stored information.""")
+        st.markdown('### ***Direct MYSQL Query***')
+        st.markdown('#### ***Retrieve Data:***')
+        st.markdown(""" - ***Function:*** Allows users to write custom queries and analyze the relevant table columns.
+                    \n- ***Usage:*** Write SQL queries in the given input area to retrieve specific information from the database table.
+                    \n- ***Table Column Reference:*** For reference, a list of table column names will be provided to help construct accurate SQL queries..""")
+        st.markdown('#### ***Retrieve Data:***')
+        st.markdown(""" - ***Function:*** Permits users to view stored images and download them based on Email addresses.
+                        \n- ***Usage:*** Select an Email address to view the associated image stored in the database.
+                        \n- ***Action:*** Provides an option to download the image for the chosen Email address.""")
