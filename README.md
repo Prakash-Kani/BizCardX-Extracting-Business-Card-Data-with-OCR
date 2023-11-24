@@ -154,4 +154,4 @@ ___
 To view a demo of the web application, click the link below. 
 https://www.linkedin.com/posts/prakash-k-physics_datascience-bizcardx-data-activity-7128414241996361729-9dcI?utm_source=share&utm_medium=member_desktop
 
-![Demo Video](https://www.linkedin.com/posts/prakash-k-physics_datascience-bizcardx-data-activity-7128414241996361729-9dcI?utm_source=share&utm_medium=member_desktop)
+[Demo Video](https://www.linkedin.com/posts/prakash-k-physics_datascience-bizcardx-data-activity-7128414241996361729-9dcI?utm_source=share&utm_medium=member_desktop)
